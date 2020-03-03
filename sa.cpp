@@ -1,4 +1,5 @@
 // sa.cpp @ fstqwq/CodeForcesTemplate
+// source:https://codeforces.com/contest/1320/submission/72266702
 namespace SA {
 	char s[N];int n;
 	int height[N],rk[N],sa[N],cc[N],t1[N],t2[N];
