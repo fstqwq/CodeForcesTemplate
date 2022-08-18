@@ -45,7 +45,7 @@ struct Hash {
 	friend Hash operator - (const Hash &a, const Hash &b) {
 		Hash ret; ret.len = a.len - b.len;
 		for (int h = 0; h < HA; h++) {
-			ret.v[h] = int((a.v[h] - (LL)pw[h][b.len] * b.v[h]) % QQ[h]);
+			ret.v[h] = int((a.v[h] - (LL)pw[h][ret.len] * b.v[h]) % QQ[h]);
 			if (ret.v[h] < 0) ret.v[h] += QQ[h];
 		}
 		return ret;

@@ -1,105 +1,51 @@
-namespace P_R {
-	void mul(LL &x, LL y, LL m) {
-		x %= m, y %= m;
-		unsigned long long t = (long long)((long double)x * y / m);
-		x = (unsigned long long) x * y - t * m;
-		x = (x % m + m) % m;
-	}
-
-	LL power(LL x, LL y, LL m) {
-		LL ret = 1;
-		for (x %= m; y; y >>= 1) {
-			if (y & 1) mul(ret, x, m);
-			mul(x, x, m);
-		}
-		return ret;
-	}
-
-	LL Rand() {
-		static LL a = 2333333;
-		a ^= a >> 12;
-		a ^= a << 25;
-		a ^= a >> 27;
-		return a * 0x2545F4914F6CDD1D;
-	}
-
-	LL gcd(LL a, LL b) {
-		while (b) {
-			LL c = a;
-			a = b; b = c % b;
-		}
-		return a;
-	}
-
-	const int P[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, -1}; // 3.8e18
-	// 1e9 : 2, 7, 61
-	// 1e12 : 2, 13, 23, 1662803
-	// ULL : ~37
-	vector<LL> D;
-
-	bool witness(int p, LL x, int t, LL n) {
-		LL y = power(p, x, n);
-		if (y == 1) return 0;
-		for (int i = 0; i < t; i++) {
-			if (y == n - 1) return 0;
-			if (y == 1) return 0;
-			mul(y, y, n);
-		}
-		return 1;
-	}
-
-	bool MR(LL n) { // O(k log ^ 3)
-		if (n < 4) return 1;
-		for (int i = 0; ~P[i]; i++) {
-			if (n == P[i]) return 1;
-			if (n % P[i] == 0) return 0;
-		}
-		LL x = n - 1; int t = 0;
-		while (~x & 1) {
-			++t;
-			x >>= 1;
-		}
-		for (int i = 0; ~P[i]; i++) {
-			if (witness(P[i], x, t, n)) return 0;
-		}
-		return 1;
-	}
-
-	void PR(LL n) { // O(n ^ {1 / 4} * log)
-		if (MR(n)) {
-			D.push_back(n);
-			return;
-		}
-		LL a, b, c, d;
-		while (1) {
-			c = Rand() % n;
-			a = b = Rand() % n;
-			mul(b, b, n); (b += c) %= n;
-			while (a != b) {
-				d = a > b ? a - b : b - a;
-				d = gcd(d, n);
-				if (d > 1 && d < n) {
-					PR(d); PR(n / d);
-					return;
-				}
-				mul(a, a, n); (a += c) %= n;
-				mul(b, b, n); (b += c) %= n;
-				mul(b, b, n); (b += c) %= n;
-			}
-		}
-	}
-	void solve(LL n) {
-		D.clear();
-		if (n < 2) return;
-		PR(n);
-		sort(D.begin(), D.end());
+typedef long long LL;
+typedef unsigned long long ULL;
+ULL mul(ULL a, ULL b, LL M) {
+	LL ret = a * b - M * ULL(1.L / M * a * b);
+	return ret + M * (ret < 0) - M * (ret >= (LL)M);
+}
+LL power(LL x, LL y, LL m) {
+	LL ret = 1;
+	for (x %= m; y; y >>= 1) {
+		if (y & 1) ret = mul(ret, x, m);
+		x = mul(x, x, m); }
+	return ret; }
+mt19937 rng(123);
+LL Rand() { return rng() & LLONG_MAX; }
+const int BASE[] = {2,325,9375,28178,450775,9780504,1795265022};//LL
+//{2, 7, 61};//int(7,3e9)
+struct miller_rabin {
+bool check (const LL &M, const LL &base) {
+	LL a = M - 1;
+	while (~a & 1) a >>= 1;
+	LL w = power (base, a, M); // power should use mul
+	for (; a != M - 1 && w != 1 && w != M - 1; a <<= 1)
+		w = mul (w, w, M);
+	return w == M - 1 || (a & 1) == 1; }
+bool operator () (const LL &a) {
+	if (a < 4) return a > 1;
+	if (~a & 1) return false;
+	for (size_t i = 0; i < sizeof(BASE)/4 && BASE[i] < a; ++i)
+		if (!check (a, BASE[i])) return false;
+	return true; } };
+miller_rabin is_prime;
+LL get_factor (LL a, LL seed) {//n ^ {1/4} * log n * mul
+	LL x = rand () % (a - 1) + 1, y = x;
+	for (int head = 1, tail = 2; ; ) {
+		x = mul (x, x, a); x = (x + seed) % a;
+		if (x == y) return a;
+		LL ans = gcd (abs (x - y), a);
+		if (ans > 1 && ans < a) return ans;
+		if (++head == tail) { y = x; tail <<= 1; }
 	}
 }
-
-/* 
-3.5e4 int
-1e5 int (mul : x * y % m)
-2e4 1e12
-5e3 1e16
-2e3 1e18
-*/
+void factor (LL a, vector<LL> &d) {
+	if (a <= 1) return;
+	if (is_prime (a)) d.push_back (a);
+	else {
+		LL f = a;
+		for (; f >= a; f = get_factor (a, rand() % (a - 1) + 1));
+		factor (a / f, d);
+		factor (f, d);
+	}
+}
